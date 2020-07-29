@@ -1,12 +1,12 @@
 import React from 'react';
+import PaymentsService from '../services/PaymentsService';
 
 class LoginComponent extends React.Component {
 
-  constructor(props) {
-    super(props);
+  #paymentsService;
 
-    this.state = {
-    };
+  componentDidMount = async () => {
+    this.#paymentsService = new PaymentsService(this.props.paymentInfo.setPaymentsInfoFn, this.props.paymentInfo.setErrorFn);
   }
 
   render() {

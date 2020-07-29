@@ -1,14 +1,13 @@
 import React from 'react';
 import ErrorService, { ErrorContext } from './services/ErrorService';
 import FeesScheduleService, { FeesContext } from './services/FeesScheduleService';
-import PaymentsService, { PaymentsContext } from './services/PaymentsService';
+import { LedgersWidgetPaymentsInfoContext } from './ledgers.js-react-widget/LedgersWidget';
 import MainPanel from './components/MainPanel';
 
 class App extends React.Component {
 
   #errorService;
   #feesScheduleService;
-  #paymentsService;
 
   constructor(props) {
     super(props);
@@ -16,10 +15,16 @@ class App extends React.Component {
     this.state = {
 
       // error info descriptor used throughout the app
-      errorInfo: {},
+      errorInfo: {
+        text: null,
+        setErrorFn: this.setError
+      },
 
       // payments info descriptor synced by PaymentsService
-      paymentsInfo: {},
+      paymentsInfo: {
+        setPaymentsInfoFn: this.setPaymentsInfo,
+        setErrorFn: this.setError
+      },
 
       // fees info descriptor synched with backend (/GetSchedule)
       feesInfo: {}
@@ -27,17 +32,16 @@ class App extends React.Component {
   }
 
   componentDidMount = async () => {
-    this.#errorService = new ErrorService(this.setErrorInfo);
+    this.#errorService = new ErrorService(this.setError);
     this.#feesScheduleService = new FeesScheduleService(this.setFeesInfo, this.#errorService.setError);
-    this.#paymentsService = new PaymentsService(this.setPaymentsInfo, this.#errorService.setError);
 
     await this.#feesScheduleService.fetchFees();
   }
 
   // Set error info.
   // @param {object} info
-  setErrorInfo = (info) => {
-    this.setState({errorInfo: {...this.state.errorInfo, ...info}});
+  setError = (text) => {
+    this.setState({errorInfo: {...this.state.errorInfo, ...{text: text ? `${text}` : null}}});
   }
 
   // Set fees info.
@@ -56,13 +60,13 @@ class App extends React.Component {
     return (
       <ErrorContext.Provider value={this.state.errorInfo}>
         <FeesContext.Provider value={this.state.feesInfo}>
-          <PaymentsContext.Provider value={this.state.paymentsInfo}>
+          <LedgersWidgetPaymentsInfoContext.Provider value={this.state.paymentsInfo}>
             <p>{JSON.stringify(this.state.paymentsInfo)}</p>
             <p>{JSON.stringify(this.state.errorInfo)}</p>
             <p>{JSON.stringify(this.state.feesInfo)}</p>
             <br/>
             <MainPanel />
-          </PaymentsContext.Provider>
+          </LedgersWidgetPaymentsInfoContext.Provider>
         </FeesContext.Provider>
       </ErrorContext.Provider>
     );

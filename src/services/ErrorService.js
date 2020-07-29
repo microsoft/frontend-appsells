@@ -14,10 +14,7 @@ class ErrorService {
   // @param {string} text - to set error message to
   setError = (text) => {
     console.log(`ErrorService::setError(${text})`);
-    this.setErrorCallback({
-      text: text, 
-      setError: (message) => this.setError(message)
-    });
+    this.setErrorCallback(text);
   }
 }
 

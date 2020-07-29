@@ -1,26 +1,30 @@
 import React from 'react';
+import { ErrorContext } from '../services/ErrorService';
 
 class ErrorComponent extends React.Component {
 
-  constructor(props) {
-    super(props);
-
-    this.state = {
-    };
-  }
-
   render() {
-    if (this.props.errorInfo && this.props.errorInfo.text) {
-      var message = (
-        <div className="ui negative message">
-          <i className="close icon" onClick={() => this.props.errorInfo?.setError(null)}></i>
-          <p>{this.props.errorInfo?.text}</p>
-        </div>
-      );
+    const message = (errorInfo) => {
+      if (errorInfo && errorInfo.text) {
+        return (
+          <div style={{maxWidth: "1000px", width: "80%"}}>
+            <div className="ui negative message">
+              <i className="close icon" onClick={() => errorInfo?.setErrorFn(null)}></i>
+              <p>{errorInfo?.text}</p>
+            </div>
+          </div>                      
+        );
+      }
+      return null;
     }
 
-  return (<div style={{maxWidth: "1000px", width: "80%"}}>{message}</div>);
+  return (
+      <ErrorContext.Consumer>
+        {errorInfo => message(errorInfo)}
+      </ErrorContext.Consumer>
+    );
   }
+
 }
 
 export default ErrorComponent;

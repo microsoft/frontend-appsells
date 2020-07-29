@@ -1,5 +1,4 @@
 import oh$ from "ledgers.js";
-import React from "react";
 import { makePretendChallenge, delay } from './Utils.js'
 
 // Map of oh$ imparter tags to allowed networks
@@ -20,9 +19,6 @@ const NETWORKS_BY_IMPARTER = {
 
 const CENTS_IN_DOLLAR = 100;
 const WEI_IN_ETHER = 1000000000000000000;
-
-// Expose a context as a convenience.
-export const PaymentsContext = React.createContext();
 
 class PaymentsService {
 
@@ -50,12 +46,15 @@ class PaymentsService {
   #allowNetworkType;
 
   // @param {(info) => ()} setPaymentsFn - function called with updated payments object, see #paymentsInfo comment above.
-  // @param {(text) => ()} setError - fn to set error if any
+  // @param {(text) => ()} setErrorFn - fn to set error if any
   // @param {string} defaultCurrency - default currency, one of 'dollars' or 'ethers'
   // @param {bool} allowTestOnly - if only test networks should be allowed
-  constructor(setPaymentsFn, setError, defaultCurrency = 'dollars', allowTestOnly = true) {
+  constructor(setPaymentsFn, setErrorFn, defaultCurrency = 'dollars', allowTestOnly = true) {
+    if (!setPaymentsFn) throw new Error(`No 'setPaymentsFn provided.  Ensure your App.js has a 'LedgersWidgetPaymentsInfoContext.Provider' with a state value containing a 'setPaymentsFn' function of type (info) => ().`);
+    if (!setErrorFn) throw new Error(`No 'setErrorFn provided.  Ensure your App.js has a 'LedgersWidgetPaymentsInfoContext.Provider' with a state value containing a 'setErrorFn' function of type (text) => ().`);
+
     this.#setPaymentsFn = setPaymentsFn;
-    this.#setError = setError;
+    this.#setError = setErrorFn;
 
     this.#paymentsInfo = {
       enabled: {},                              // keyed by (currentCurrency || defaultCurrency); informs if currency available, e.g. wallet availble
