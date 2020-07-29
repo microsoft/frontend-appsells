@@ -26,10 +26,12 @@ class App extends React.Component {
     };
   }
 
-  componentDidMount() {
+  componentDidMount = async () => {
     this.#errorService = new ErrorService(this.setErrorInfo);
     this.#feesScheduleService = new FeesScheduleService(this.setFeesInfo, this.#errorService.setError);
     this.#paymentsService = new PaymentsService(this.setPaymentsInfo, this.#errorService.setError);
+
+    await this.#feesScheduleService.fetchFees();
   }
 
   // Set error info.
