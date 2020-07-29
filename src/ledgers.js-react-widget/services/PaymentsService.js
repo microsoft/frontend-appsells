@@ -23,13 +23,23 @@ const WEI_IN_ETHER = 1000000000000000000;
 class PaymentsService {
 
   /**
-   * Payments info object signalled out by this service via `setPaymentsFn` passed into constructor.
+   * Payments info object signalled out by this service via `updateApplicationStateFn` passed into constructor.
    * 
    * The format of this object is:
    * 
    * {
+   *   updateApplicationStateFn: (info) => {},   // function provided by application to update application state with this object
+   *   setErrorFn: (text) => {},                 // function provided by application to feed back errors, clears error with null
+   * 
+   *   getCurrentCurrency = () => string         // public function: returns 'dollars' or 'ethers'
+   *   isAuthenticated = async () => {},         // public function: is current crednetial authenticatd against the current currency's ledger? 
+   *   isAuthorized = async (amount, to, since) => {}  // public function: does current currency ledger have 'amount' or more paid 
+   *                                                   //                  'to' recepient 'since' (or all if 'since' null)?
+   *   topUp = async (amount, to) => {}          // public function: top-up payments 'to' recepient on the current currency ledger with 'amount'
+   * 
    *   enabled: {},                              // keyed by (currentCurrency || defaultCurrency); informs if currency available, e.g. wallet availble
    *   wallet: {},                               // keyed by (currentCurrency || defaultCurrency); informs of currently used wallet, or null
+   *   isOnLedger: {},                           // keyed by (currentCurrency || defaultCurrency); informs if currently used credentials are on ledger
    *   defaultCurrency: `dollars`,               // default payment currency, either 'dollars' or 'ethers'
    *   currentCurrency: null,                    // chosen payment currency, either 'dollars', 'ethers', or null
    *   payerAddress: null,                       // (out only) payer's public address as set by service
@@ -38,27 +48,35 @@ class PaymentsService {
    *   messageToSign: null,                      // message to sign into `payerSignature`
    *   service: this,                            // this service instance, for working with exposed public methods
    * }
+   * 
    */
   #paymentsInfo;
 
-  #setPaymentsFn;
+  #updateApplicationStateFn;
   #setError;
   #allowNetworkType;
 
-  // @param {(info) => ()} setPaymentsFn - function called with updated payments object, see #paymentsInfo comment above.
+  // @param {(info) => ()} updateApplicationStateFn - function called with updated payments object, see #paymentsInfo comment above.
   // @param {(text) => ()} setErrorFn - fn to set error if any
   // @param {string} defaultCurrency - default currency, one of 'dollars' or 'ethers'
   // @param {bool} allowTestOnly - if only test networks should be allowed
-  constructor(setPaymentsFn, setErrorFn, defaultCurrency = 'dollars', allowTestOnly = true) {
-    if (!setPaymentsFn) throw new Error(`No 'setPaymentsFn provided.  Ensure your App.js has a 'LedgersWidgetPaymentsInfoContext.Provider' with a state value containing a 'setPaymentsFn' function of type (info) => ().`);
+  constructor(updateApplicationStateFn, setErrorFn, defaultCurrency = 'dollars', allowTestOnly = true) {
+    if (!updateApplicationStateFn) throw new Error(`No 'updateApplicationStateFn provided.  Ensure your App.js has a 'LedgersWidgetPaymentsInfoContext.Provider' with a state value containing a 'updateApplicationStateFn' function of type (info) => ().`);
     if (!setErrorFn) throw new Error(`No 'setErrorFn provided.  Ensure your App.js has a 'LedgersWidgetPaymentsInfoContext.Provider' with a state value containing a 'setErrorFn' function of type (text) => ().`);
 
-    this.#setPaymentsFn = setPaymentsFn;
+    this.#updateApplicationStateFn = updateApplicationStateFn;
     this.#setError = setErrorFn;
 
     this.#paymentsInfo = {
+      getCurrentCurrency: this.#getCurrentCurrency,  // public function: returns 'dollars' or 'ethers'
+      isAuthenticated: this.#isAuthenticated,       // public function: is current crednetial authenticatd against the current currency's ledger? 
+      isAuthorized: this.#isAuthorized,             // public function: does current currency ledger have 'amount' or more paid 
+                                                    //                  'to' recepient 'since' (or all if 'since' null)?
+      topUp: this.#topUp,                           // public function: top-up payments 'to' recepient on the current currency ledger with 'amount'
+
       enabled: {},                              // keyed by (currentCurrency || defaultCurrency); informs if currency available, e.g. wallet availble
       wallet: {},                               // keyed by (currentCurrency || defaultCurrency); informs of currently used wallet, or null
+      isOnLedger: {},                           // keyed by (currentCurrency || defaultCurrency); informs if currently used credentials are on ledger
       defaultCurrency: defaultCurrency,         // default payment currency, either 'dollars' or 'ethers'
       currentCurrency: null,                    // chosen payment currency, either 'dollars', 'ethers', or null
       payerAddress: null,                       // (out only) payer's public address as set by service
@@ -74,10 +92,13 @@ class PaymentsService {
 
   // Set current currency
   // @param {string} currency - to set (allowed values: 'dollars' or 'ethers')
-  setCurrentCurrency = (currency) => {
+  setCurrentCurrency = async (currency) => {
     let newInfo = this.#paymentsInfo;
     newInfo.currentCurrency = currency;
-    this.#setPaymentsFn(newInfo);
+    if (!this.#isAuthenticated()) {
+      await this.#authenticate(currency);
+    }
+    this.#updateApplicationStateFn(newInfo);
   }
 
   // Sets credentials secret key for non-wallet workflow
@@ -85,7 +106,7 @@ class PaymentsService {
   setSecretKey = async (newKey) => {
     try {
       this.#setError(null);
-      const currency = this.#paymentsInfo.currentCurrency || this.#paymentsInfo.defaultCurrency;
+      const currency = this.#getCurrentCurrency();
       const imparter = this.#getImparter();
       if (!this.#paymentsInfo.wallet[currency]) {
         await oh$.setCredentials(imparter, {secret: newKey});
@@ -100,54 +121,55 @@ class PaymentsService {
   // No-op if current currency has a wallet set.
   generateNewKeys = async () => {
     try {
-      const currency = this.#paymentsInfo.currentCurrency || this.#paymentsInfo.defaultCurrency;
+      const currency = this.#getCurrentCurrency();
       const imparter = this.#getImparter();
       if (!this.#paymentsInfo.wallet[currency]) {
-        await await oh$.generateCredentials(imparter,null);
+        await oh$.generateCredentials(imparter,null);
       }
     } catch (error) {
       this.#setError(`${error}`);
     }
   }
 
-  // Authenticate current credentials by checking for any transactions on current ledger.
-  // @returns {bool} `true` if authenticated
-  isOnLedger = async () => {
-    try {
-      const imparter = this.#getImparter();
-      return await oh$.isOnLedger(imparter);
-    } catch (error) {
-      this.#setError(`${error}`);
-    }
+  // @returns {string} 'dollars' or 'ethers'.
+  #getCurrentCurrency = () => {
+    return this.#paymentsInfo.currentCurrency || this.#paymentsInfo.defaultCurrency;
   }
 
-  // Sign a challenge with current credentials and set to the payments info.
-  sign = async () => {
-    try {
-      const challenge = makePretendChallenge();
-      const imparter = this.#getImparter();
-      var signature = await oh$.sign(imparter, challenge);
-      this.#setSignature(challenge, signature);
-    } catch (error) {
-      this.#setError(`${error}`);
+  // Is current crednetial authenticatd against the current currency's ledger? 
+  // @returns {bool} after checking signature and whether ledger has any transactions (to anyone)
+  #isAuthenticated = () => {
+    const currency = this.#getCurrentCurrency();
+    return this.#paymentsInfo.isOnLedger[currency];
+  }
+
+  // @param 
+  #authenticate = async (currency) => {
+    if (currency !== this.#getCurrentCurrency()) return;
+    if ((!this.#paymentsInfo.payerSignature 
+         || !this.#paymentsInfo.messageToSign)
+        && !this.#paymentsInfo.wallet[currency] /* if wallet present, sign through wallet instead */) {
+      await this.#sign();
     }
+    await this.#isOnLedger()
   }
 
   // Get balance outstanding for authorization as per current currency.
   // @param {number} cost - amount expected to tally (in dollars or ethers)
+  // @param {string} to - address of recepient
   // @param {number} minutes - number of minutes to look back (since) on the ledger
   // @returns {number} balance in dollars or ethers
-  getBalanceDue = async (cost, tallyMinutes) => {
+  #isAuthorized = async (cost, to, tallyMinutes) => {
     try {
-      const currency = this.#paymentsInfo.currentCurrency || this.#paymentsInfo.defaultCurrency;
+      const currency = this.#getCurrentCurrency();
       const imparter = this.#getImparter();
       let tally;
       if (tallyMinutes) {
         let since = new Date();
         since.setMinutes(since.getMinutes() - tallyMinutes);
-        tally = await oh$.getTally(imparter, { address: this.#paymentsInfo.payerAddress }, since);
+        tally = await oh$.getTally(imparter, { address: to }, since);
       } else {
-        tally = await oh$.getTally(imparter, { address: this.#paymentsInfo.payerAddress }, null);
+        tally = await oh$.getTally(imparter, { address: to }, null);
       }
       switch (currency) {
         case 'dollars':
@@ -175,8 +197,8 @@ class PaymentsService {
   // Do the actual topup to authorize
   // @param {number} amount - amount to topup (in dollars or ethers), can be 0 to just create a free transaction for getting on ledger
   // @param {} toAddress - to pay
-  topUp = async (amount, toAddress) => {
-    const currency = this.#paymentsInfo.currentCurrency || this.#paymentsInfo.defaultCurrency;
+  #topUp = async (amount, toAddress) => {
+    const currency = this.#getCurrentCurrency();
     const wallet = this.#paymentsInfo.wallet[currency];
     const imparter = this.#getImparter();
     switch (currency) {
@@ -194,8 +216,11 @@ class PaymentsService {
     try {
       let aDayAgo = new Date((new Date()).getTime() - 24*60*60*1000);     // we compare tallies...
       let before = await oh$.getTally(imparter, {address: toAddress}, aDayAgo);  // ... by taking a sample before
-      await oh$.createTransaction(imparter, amount, toAddress);
-      this.props.doHint('topupWalletConsistent');
+      let options = this.#paymentsInfo.payerSignature && this.#paymentsInfo.messageToSign && {
+          message: this.#paymentsInfo.messageToSign, 
+          signature: this.#paymentsInfo.payerSignature
+        };
+      await oh$.createTransaction(imparter, amount, toAddress, options);
       if (this.state.chosenCurrency === 'dollars') this.props.shouldVisaHintShow(false);
       for (var i = 0; i < 12; i++) {
         let now = await oh$.getTally(imparter, { address: toAddress }, aDayAgo); // ... we take a sample now
@@ -204,15 +229,43 @@ class PaymentsService {
                                                                           //     node and ledgers.js node
         await delay(5000);                                                // ... else wait 5 seconds
       }
+      this.#paymentsInfo.isOnLedger[currency] = true;      
     } catch (error) {
-      this.#setError(`${error}`);
+      this.#setError(`${'message' in error ? error.message : error}`);
       if (this.chosenCurrency === 'dollars') this.props.shouldVisaHintShow(false);
+    }
+  }
+
+  // Check current credentials for any transactions on current ledger.
+  #isOnLedger = async () => {
+    try {
+      const currency = this.#getCurrentCurrency();
+      const imparter = this.#getImparter();
+      this.#paymentsInfo.isOnLedger[currency] = false;
+      if (await oh$.isOnLedger(imparter)) {
+        this.#paymentsInfo.isOnLedger[currency] = true;
+      }
+    } catch (error) {
+      this.#setError(`${'message' in error ? error.message : error}`);
+    }
+  }
+
+  // Sign a challenge with current credentials and set to the payments info.
+  #sign = async () => {
+    try {
+      const challenge = makePretendChallenge();
+      const imparter = this.#getImparter();
+      var signature = await oh$.sign(imparter, challenge);
+      this.#setSignature(challenge, signature);
+    } catch (error) {
+      this.#setSignature(null, null);
+      this.#setError(`${'message' in error ? error.message : error}`);
     }
   }
 
   // Get imparter based on currently tracked info
   #getImparter = () => {
-    const currency = this.#paymentsInfo.currentCurrency || this.#paymentsInfo.defaultCurrency;
+    const currency = this.#getCurrentCurrency();
     const wallet = this.#paymentsInfo.wallet[currency];
     switch (currency) {
       case 'dollars':
@@ -229,7 +282,7 @@ class PaymentsService {
   #setCurrencyEnabled = (currency, value) => {
     let newInfo = this.#paymentsInfo;
     newInfo.enabled[currency] = value;
-    this.#setPaymentsFn(newInfo);
+    this.#updateApplicationStateFn(newInfo);
   }
 
   // Set signature
@@ -238,7 +291,7 @@ class PaymentsService {
   #setWallet = (currency, walletKey) => {
     let newInfo = this.#paymentsInfo;
     newInfo.wallet[currency] = walletKey;
-    this.#setPaymentsFn(newInfo);
+    this.#updateApplicationStateFn(newInfo);
   }
 
   // Set signature
@@ -248,19 +301,34 @@ class PaymentsService {
     let newInfo = this.#paymentsInfo;
     newInfo.messageToSign = messageToSign;
     newInfo.payerSignature = payerSignature;
-    this.#setPaymentsFn(newInfo);
+    this.#updateApplicationStateFn(newInfo);
   }
 
   // Set credentials
+  // @param {} currency - setting credentials for
   // @param {} payerAddress - (out only) payer's public address as set by service
   // @param {} payerPrivateKey - payer's private key (receipt code) iff not using wallet, null if using wallet
-  #setCredentials = (payerAddress, payerPrivateKey) => {
+  #setCredentials = async (currency, payerAddress, payerPrivateKey) => {
+    console.log('setCreds');
     let newInfo = this.#paymentsInfo;
     newInfo.payerAddress = payerAddress;
     newInfo.payerPrivateKey = payerPrivateKey;
     newInfo.messageToSign = null;
-    newInfo.payerSignature = null;
-    this.#setPaymentsFn(newInfo);
+    newInfo.payerSignature = null;    
+    await this.#authenticate(currency);
+    this.#updateApplicationStateFn(newInfo);
+  }
+
+  // Clear credentials and wallet if problem
+  #clear = (currency) => {
+    let newInfo = this.#paymentsInfo;
+    newInfo.enabled[currency] = false;
+    newInfo.wallet[currency] = null;
+    newInfo.payerAddress = null;
+    newInfo.payerPrivateKey = null;
+    newInfo.messageToSign = null;
+    newInfo.payerSignature = null;    
+    this.#updateApplicationStateFn(newInfo);
   }
 
   // Initialize oh$ listeners.
@@ -269,21 +337,31 @@ class PaymentsService {
     // Determine if ethers should be enabled based on uri from wallet (versus admin)
     // Ethers only enabled if wallet, so do everything in 'onWalletChange'
     oh$.addEventListener('onWalletChange', async (e) => {
-      const currentCurrency = this.#paymentsInfo.currentCurrency;
+      const network = await oh$.getNetwork(e.imparterTag);
+      const credentials = await oh$.getCredentials(e.imparterTag);
       switch (e.imparterTag) {
         case 'eth-web3':
           if (e.isPresent) {
-            this.#setCurrencyEnabled('ethers', true);
+            if (NETWORKS_BY_IMPARTER[this.#allowNetworkType][e.imparterTag] === network.name) {
+              this.#setCurrencyEnabled('ethers', true);
+              this.#setWallet('ethers', e.isPresent ? 'web3' : null);
+              await this.#setCredentials('ethers', credentials.address, null);
+            } else {
+              // wrong network
+              this.#clear('ethers');
+              this.#setError(`Network misconfiguration: (expected:${NETWORKS_BY_IMPARTER[this.#allowNetworkType][e.imparterTag]}) (seen:${network.name})`);
+              return;
+            }
           } else {
             // no wallet no ether payments
-            this.#setCurrencyEnabled('ethers', false);
-            this.setCurrentCurrency(currentCurrency === 'ethers' ? null : currentCurrency);
+            this.#clear('ethers');
           }
           // dollars always available, ethers enabled when network detected below  
-          this.#setWallet('ethers', e.isPresent ? 'web3' : null);
           break;
         case 'ohledger-web3':
           this.#setWallet('dollars', e.isPresent ? 'web3' : null);
+          await this.#setCredentials('dollars', credentials.address, null);
+          console.log(`overhide-ledger wallet set for network ${network.currency}:${network.mode}`); // no network misconfigs for ohledger as explicitly set
           break;
         default:
       }
@@ -292,27 +370,25 @@ class PaymentsService {
     // Determine if dollars should be enabled.  Since we enable dollars test network at end below, we know this will trigger..
     // No wallet for dollars in this example.
     oh$.addEventListener('onNetworkChange', async (e) => {
-      const currentCurrency = this.#paymentsInfo.currentCurrency;
       switch (e.imparterTag) {
         case 'eth-web3':
           if (e && e.name && NETWORKS_BY_IMPARTER[this.#allowNetworkType][e.imparterTag] !== e.name) {
             // wrong network
-            this.#setCurrencyEnabled('ethers', false);
-            this.setCurrentCurrency(currentCurrency === 'ethers' ? null : currentCurrency);
+            this.#clear('ethers');
             this.#setError(`Network misconfiguration: (expected:${NETWORKS_BY_IMPARTER[this.#allowNetworkType][e.imparterTag]}) (seen:${e.name})`);
             return;
           }
           break;
         case 'ohledger':
         case 'ohledger-web3':
-            if ('currency' in e
-            && 'mode' in e
-            && `${e.currency}:${e.mode}` === NETWORKS_BY_IMPARTER[this.#allowNetworkType][e.imparterTag]) {
+          if ('currency' in e
+              && 'mode' in e
+              && `${e.currency}:${e.mode}` === NETWORKS_BY_IMPARTER[this.#allowNetworkType][e.imparterTag]) {
             this.#setCurrencyEnabled('dollars', true);
             break;
           }
           // wrong network
-          this.#setCurrencyEnabled('dollars', false);
+          this.#clear('dollars');
           this.#setError(`overhide-ledger network misconfig: (expected:${NETWORKS_BY_IMPARTER[this.#allowNetworkType][e.imparterTag]}) (seen: ${e.currency}:${e.mode})`);
           return;
         default:
@@ -321,7 +397,11 @@ class PaymentsService {
 
     // Update current payer
     oh$.addEventListener('onCredentialsUpdate', async (e) => {
-      this.#setCredentials(e.address, 'secret' in e ? e.secret : null);
+      // don't update if wallet not set/unset:  perhaps network error above.
+      if (e.imparterTag === 'eth-web3' && !this.#paymentsInfo.wallet['ethers']) return;
+      if (e.imparterTag === 'ohledger-web3' && !this.#paymentsInfo.wallet['dollars']) return;      
+
+      await this.#setCredentials(e.imparterTag === 'eth-web3' ? 'ethers' : 'dollars', e.address, 'secret' in e ? e.secret : null);
     });
 
     oh$.setNetwork('ohledger', { currency: 'USD', mode: this.#allowNetworkType ? 'test' : 'prod' }); 

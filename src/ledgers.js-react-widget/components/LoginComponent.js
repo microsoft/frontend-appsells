@@ -6,7 +6,7 @@ class LoginComponent extends React.Component {
   #paymentsService;
 
   componentDidMount = async () => {
-    this.#paymentsService = new PaymentsService(this.props.paymentInfo.setPaymentsInfoFn, this.props.paymentInfo.setErrorFn);
+    this.#paymentsService = new PaymentsService(this.props.paymentInfo.updateApplicationStateFn, this.props.paymentInfo.setErrorFn);
   }
 
   render() {

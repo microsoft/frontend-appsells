@@ -12,7 +12,22 @@ class App extends React.Component {
   constructor(props) {
     super(props);
 
+    // application state
     this.state = {
+
+      // payments info descriptor updated by LedgersWidget
+      //
+      // Injected into `LedgersWidgetPaymentsInfoContext.Consumer` -- will have the following functions:
+      //
+      //   getCurrentCurrency = () => { /* public function: returns 'dollars' or 'ethers' */ }
+      //   isAuthenticated = async () => { /* is current crednetial authenticatd against the current currency's ledger? */ }
+      //   isAuthorized = async (amount, to, since) => { /* does current currency ledger have 'amount' or more paid 'to' recepient 'since' (or all if 'since' null)? */ }
+      //   topUp = async (amount, to) => { /* public function: top-up payments 'to' recepient on the current currency ledger with 'amount' */ }
+      //
+      paymentsInfo: {
+        updateApplicationStateFn: this.setPaymentsInfo,
+        setErrorFn: this.setError
+      },
 
       // error info descriptor used throughout the app
       errorInfo: {
@@ -20,13 +35,22 @@ class App extends React.Component {
         setErrorFn: this.setError
       },
 
-      // payments info descriptor synced by PaymentsService
-      paymentsInfo: {
-        setPaymentsInfoFn: this.setPaymentsInfo,
-        setErrorFn: this.setError
-      },
-
-      // fees info descriptor synched with backend (/GetSchedule)
+      // fees info descriptor updated by backend (/GetSchedule):
+      //
+      // 'free': {
+      //   'expiryMinutes': ..,
+      //   'dollars': {
+      //     'cost': ..,
+      //     'address': ..
+      //   },
+      //   'ethers': {
+      //     'cost': ..,
+      //     'address': ..
+      //   }
+      // },
+      // 'paid': { /* same as above */ },
+      // 'subscription: { /* same as above */ }
+      //
       feesInfo: {}
     };
   }
@@ -61,7 +85,7 @@ class App extends React.Component {
       <ErrorContext.Provider value={this.state.errorInfo}>
         <FeesContext.Provider value={this.state.feesInfo}>
           <LedgersWidgetPaymentsInfoContext.Provider value={this.state.paymentsInfo}>
-            <p>{JSON.stringify(this.state.paymentsInfo)}</p>
+            <pre>{JSON.stringify(this.state.paymentsInfo, null, 2)}</pre>
             <p>{JSON.stringify(this.state.errorInfo)}</p>
             <p>{JSON.stringify(this.state.feesInfo)}</p>
             <br/>
