@@ -13,7 +13,7 @@ class ErrorComponent extends React.Component {
     if (this.props.errorInfo && this.props.errorInfo.text) {
       var message = (
         <div className="ui negative message">
-          <i className="close icon" onClick={() => this.props.errorInfo?.service?.setError(null)}></i>
+          <i className="close icon" onClick={() => this.props.errorInfo?.setError(null)}></i>
           <p>{this.props.errorInfo?.text}</p>
         </div>
       );

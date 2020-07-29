@@ -16,7 +16,7 @@ class App extends React.Component {
     this.state = {
 
       // error info descriptor used throughout the app
-      errorInfo: {text: null},
+      errorInfo: {},
 
       // payments info descriptor synced by PaymentsService
       paymentsInfo: {},
@@ -48,7 +48,6 @@ class App extends React.Component {
   // @param {object} info
   setPaymentsInfo = (info) => {
     this.setState({paymentsInfo: {...this.state.paymentsInfo, ...info}});
-    console.log(JSON.stringify(info));
   }
 
   render() {
