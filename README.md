@@ -8,6 +8,8 @@
 
 
 
+## Introduction
+
 This demo presents symbiosis between "[Ledger Based Authorizations](https://overhide.io/)" and [Azure's Static Web Apps](https://azure.microsoft.com/en-us/services/app-service/static/#overview).
 
 The intent is to enable application developers to add free and for-pay authorization aspects to their single page applications--with a minimal backend integration, no concern for payment-gateways, no database work, hence without taking on responsibility of knowing their customers (GDPR compliant).  We want to free app developers to focus on their features, not managing who is who, yet have a simple ability to make a profit from their creations.
@@ -29,6 +31,33 @@ Prerequisites:
 - [VSCode](https://code.visualstudio.com/) with [Azure Functions Extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions) installed.
 
 It was ammended with demo bits and the [remuneration library](https://github.com/overhide/overhide/blob/master/docs/remuneration-api.md) and [ledgers.js](https://www.npmjs.com/package/ledgers.js) from [overhide](https://overhide.io).
+
+## Overview
+
+In this demo we have a React frontend and two Azure functions for the backend.  The code we wrote in our app is under the "our code" label below:
+
+![diagram](https://github.com/microsoft/frontend-appsells/blob/main/docs/diagram.png?raw=true)
+
+See next section for more code details.
+
+The *ledgers.js-react-widget* React widget provides login visuals to our users (in the browser) and updates the rest of our application as to whether the user authenticated and paid up for feature access.
+
+The widget interacts with other visual components representing features in our app via *LedgersWidgetPaymentsInfoContext*.  This context provides payment information.  These other components, represented by *FeatureComponent* in our demo, are various paid add-ons and subscriptions.  Since these are features that require authentication and payment, they interact with *ledgers.js-react-widget* (via this injected context) for additional payments.  
+
+When these features are used, they call into our Azure functions backend.  The frontend provides necessary information proving the user is authenticated (signature) and which ledger they authorized against (paid up).  The Azure functions backend validates their signature (authentication, they are who they say) and validates authorizations.  The back-end does this with two simple REST APIs.  This demo is rudimentary, but the back-end should really be extended to return a token for subsequent calls.
+
+### What We Accomplished as Application Developers
+
+- we will get paid for our efforts
+- we just plopped a simple widget into our frontend to give us a login + payments
+- we spent very little effort on the backend to accomplish same
+- this nimbleness and small footprint is very much in-line with the [Azure Static Web Apps](https://azure.microsoft.com/en-us/services/app-service/static/) offering
+- we didn't stand up a database for tracking our users (GDPR)
+- the ledgers used are anonymous public ledgers, separating us as developers from being responsible for user's payment data
+- if we choose to store feature data, it flows naturally that it can be kept anonymized in our feature data stores
+- we use crypto concepts but allow our users to pay with credit cards in US dollars
+- since we use crypto concepts, our application is crypto ready:  we also allow payments with ethers
+- this is completely secure in an introspectable user-agent such as a Web browser:  no API keys, nothing to decompile
 
 ## Using This in Your *Azure Static Web Apps* Projects
 
