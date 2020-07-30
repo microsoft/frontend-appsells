@@ -20,8 +20,11 @@ class App extends React.Component {
       // Injected into `LedgersWidgetPaymentsInfoContext.Consumer` -- will have the following functions:
       //
       //   getCurrentCurrency = () => { /* public function: returns 'dollars' or 'ethers' */ }
-      //   isAuthenticated = async () => { /* is current crednetial authenticatd against the current currency's ledger? */ }
-      //   isAuthorized = async (amount, to, since) => { /* does current currency ledger have 'amount' or more paid 'to' recepient 'since' (or all if 'since' null)? */ }
+      //   isAuthenticated = () => { /* is current crednetial authenticatd against the current currency's ledger? */ }
+      //   getOutstanding = (amount, to, since) => { /* does current currency ledger have 'amount' or more paid 
+      //                                                'to' recepient 'since' (or all if 'since' null)? 
+      //                                                Differnce in dollars or ethers, $0 if authorized. 
+      //                                                Null if not yet known: will update application state. */ }
       //   topUp = async (amount, to) => { /* public function: top-up payments 'to' recepient on the current currency ledger with 'amount' */ }
       //
       paymentsInfo: {

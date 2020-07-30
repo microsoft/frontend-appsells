@@ -28,7 +28,8 @@ class MainPanel extends React.Component {
           <div className="four wide column">
             <div className="ui center aligned segment basic">
               <FeatureComponent which="free" 
-                                authLabel="Login Free"
+                                authLabel="Login to Use"
+                                payLayble=""
                                 useLabel="Use Feature"
                                 showCost={false} />
             </div>
@@ -36,7 +37,8 @@ class MainPanel extends React.Component {
           <div className="four wide column">
             <div className="ui center aligned segment basic">
               <FeatureComponent which="paid" 
-                                authLabel="Add Feature"
+                                authLabel="Login to Use"
+                                payLabel="Add Feature"
                                 useLabel="Use Feature"
                                 showCost={true} />
             </div>
@@ -44,7 +46,8 @@ class MainPanel extends React.Component {
           <div className="four wide column">
             <div className="ui center aligned segment basic">
               <FeatureComponent which="subscription" 
-                                authLabel="Subscribe Feature"
+                                authLabel="Login to Use"
+                                payLabel="Subscribe Feature"
                                 useLabel="Use Feature"
                                 showCost={true} />
             </div>

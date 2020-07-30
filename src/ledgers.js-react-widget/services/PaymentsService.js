@@ -32,9 +32,11 @@ class PaymentsService {
    *   setErrorFn: (text) => {},                 // function provided by application to feed back errors, clears error with null
    * 
    *   getCurrentCurrency = () => string         // public function: returns 'dollars' or 'ethers'
-   *   isAuthenticated = async () => {},         // public function: is current crednetial authenticatd against the current currency's ledger? 
-   *   isAuthorized = async (amount, to, since) => {}  // public function: does current currency ledger have 'amount' or more paid 
-   *                                                   //                  'to' recepient 'since' (or all if 'since' null)?
+   *   isAuthenticated = () => {},               // public function: is current crednetial authenticatd against the current currency's ledger? 
+   *   getOutstanding = (amount, to, since) => {}// public function: does current currency ledger have 'amount' or more paid 
+   *                                             //                  'to' recepient 'since' (or all if 'since' null)?
+   *                                             //                  Differnce in dollars or ethers, $0 if authorized. 
+   *                                             //                  Null if not yet known: will update application state.
    *   topUp = async (amount, to) => {}          // public function: top-up payments 'to' recepient on the current currency ledger with 'amount'
    * 
    *   enabled: {},                              // keyed by (currentCurrency || defaultCurrency); informs if currency available, e.g. wallet availble
@@ -68,10 +70,12 @@ class PaymentsService {
     this.#setError = setErrorFn;
 
     this.#paymentsInfo = {
-      getCurrentCurrency: this.#getCurrentCurrency,  // public function: returns 'dollars' or 'ethers'
+      getCurrentCurrency: this.#getCurrentCurrency, // public function: returns 'dollars' or 'ethers'
       isAuthenticated: this.#isAuthenticated,       // public function: is current crednetial authenticatd against the current currency's ledger? 
-      isAuthorized: this.#isAuthorized,             // public function: does current currency ledger have 'amount' or more paid 
+      getOutstanding: this.#getOutstanding,         // public function: does current currency ledger have 'amount' or more paid 
                                                     //                  'to' recepient 'since' (or all if 'since' null)?
+                                                    //                  Differnce in dollars or ethers, $0 if authorized.
+                                                    //                  Null if not yet known: will update application state.
       topUp: this.#topUp,                           // public function: top-up payments 'to' recepient on the current currency ledger with 'amount'
 
       enabled: {},                              // keyed by (currentCurrency || defaultCurrency); informs if currency available, e.g. wallet availble
@@ -84,6 +88,7 @@ class PaymentsService {
       payerSignature: null,                     // signed `messageToSign` by payer
       messageToSign: null,                      // message to sign into `payerSignature`
       service: this,                            // this service instance, for working with exposed public methods
+      time: new Date()                          // just a timestamp for refresh
     };
 
     this.#allowNetworkType = allowTestOnly ? 'test' : 'prod';
@@ -93,6 +98,7 @@ class PaymentsService {
   // Set current currency
   // @param {string} currency - to set (allowed values: 'dollars' or 'ethers')
   setCurrentCurrency = async (currency) => {
+    this.#outstandingCache = {}; // reset outstanding cache
     let newInfo = this.#paymentsInfo;
     newInfo.currentCurrency = currency;
     if (!this.#isAuthenticated()) {
@@ -143,55 +149,76 @@ class PaymentsService {
     return this.#paymentsInfo.isOnLedger[currency];
   }
 
-  // @param 
   #authenticate = async (currency) => {
     if (currency !== this.#getCurrentCurrency()) return;
+    this.#outstandingCache = {}; // reset outstanding cache
     if ((!this.#paymentsInfo.payerSignature 
-         || !this.#paymentsInfo.messageToSign)
-        && !this.#paymentsInfo.wallet[currency] /* if wallet present, sign through wallet instead */) {
+         || !this.#paymentsInfo.messageToSign)) {
       await this.#sign();
     }
     await this.#isOnLedger()
   }
 
+  // cache of outstanding results
+  #outstandingCache = {};
+
   // Get balance outstanding for authorization as per current currency.
   // @param {number} cost - amount expected to tally (in dollars or ethers)
   // @param {string} to - address of recepient
   // @param {number} minutes - number of minutes to look back (since) on the ledger
-  // @returns {number} balance in dollars or ethers
-  #isAuthorized = async (cost, to, tallyMinutes) => {
-    try {
-      const currency = this.#getCurrentCurrency();
-      const imparter = this.#getImparter();
-      let tally;
-      if (tallyMinutes) {
-        let since = new Date();
-        since.setMinutes(since.getMinutes() - tallyMinutes);
-        tally = await oh$.getTally(imparter, { address: to }, since);
-      } else {
-        tally = await oh$.getTally(imparter, { address: to }, null);
-      }
-      switch (currency) {
-        case 'dollars':
-          cost = cost * CENTS_IN_DOLLAR; // need cents
-          break;
-        case 'ethers':
-          cost = cost * WEI_IN_ETHER; // need wei
-          break;
-        default:
-      }      
-      var delta = cost - tally;
-      delta = delta < 0 ? 0 : delta;
-      switch (currency) {
-        case 'dollars':
-          return delta / CENTS_IN_DOLLAR; // need dollars
-        case 'ethers':
-          return delta / WEI_IN_ETHER; // need cents
-        default:
-      }      
-    } catch (error) {
-      this.#setError(`${error}`);
+  // @returns {number} differnce in dollars or ethers, $0 if authorized, null if not yet known.
+  #getOutstanding = (cost, to, tallyMinutes) => {
+    const currency = this.#getCurrentCurrency();
+    const key = `${currency}_${cost}_${to}_${tallyMinutes}`;
+    console.log(`#getOutstanding(${key}) = ${this.#outstandingCache[key]}`);
+    if (key in this.#outstandingCache) {
+      return this.#outstandingCache[key];
     }
+    this.#outstandingCache[key] = null; // for re-requests
+    (async () => {
+      try {
+        const imparter = this.#getImparter();
+        let tally;
+        const creds = await oh$.getCredentials(imparter);
+        if (!creds || !creds.address) {
+          this.#outstandingCache[key] = cost;
+          this.#pingApplicationState();
+          return;
+        };
+        if (tallyMinutes) {
+          let since = new Date();
+          since.setMinutes(since.getMinutes() - tallyMinutes);
+          tally = await oh$.getTally(imparter, { address: to }, since);
+        } else {
+          tally = await oh$.getTally(imparter, { address: to }, null);
+        }
+        switch (currency) {
+          case 'dollars':
+            cost = cost * CENTS_IN_DOLLAR; // need cents
+            break;
+          case 'ethers':
+            cost = cost * WEI_IN_ETHER; // need wei
+            break;
+          default:
+        }      
+        var delta = cost - tally;
+        delta = delta < 0 ? 0 : delta;
+        switch (currency) {
+          case 'dollars':
+            this.#outstandingCache[key] = delta / CENTS_IN_DOLLAR; // need dollars
+            this.#pingApplicationState();
+            return;
+          case 'ethers':
+            this.#outstandingCache[key] = delta / WEI_IN_ETHER; // need cents
+            this.#pingApplicationState();
+            return;
+          default:
+        }      
+      } catch (error) {
+        this.#setError(`${'message' in error ? error.message : error}`);
+      }  
+    })();
+    return null;
   }
 
   // Do the actual topup to authorize
@@ -205,7 +232,7 @@ class PaymentsService {
       case 'dollars':
         amount = amount * CENTS_IN_DOLLAR; // need cents
         if (!wallet) {
-          await oh$.setCredentials(imparter, {secret: this.props.privateKey});
+          await oh$.setCredentials(imparter, {secret: this.#paymentsInfo.payerPrivateKey});
         }
         break;
       case 'ethers':
@@ -221,7 +248,6 @@ class PaymentsService {
           signature: this.#paymentsInfo.payerSignature
         };
       await oh$.createTransaction(imparter, amount, toAddress, options);
-      if (this.state.chosenCurrency === 'dollars') this.props.shouldVisaHintShow(false);
       for (var i = 0; i < 12; i++) {
         let now = await oh$.getTally(imparter, { address: toAddress }, aDayAgo); // ... we take a sample now
         if (now > before) break;                                          // ... and exit out as soon as decentralized
@@ -230,12 +256,20 @@ class PaymentsService {
         await delay(5000);                                                // ... else wait 5 seconds
       }
       this.#paymentsInfo.isOnLedger[currency] = true;      
+      this.#outstandingCache = {}; // reset outstanding cache
+      this.#pingApplicationState();
     } catch (error) {
       this.#setError(`${'message' in error ? error.message : error}`);
-      if (this.chosenCurrency === 'dollars') this.props.shouldVisaHintShow(false);
     }
   }
 
+  // Trigger redraw via application state update
+  #pingApplicationState = () => {
+    let newInfo = this.#paymentsInfo;
+    newInfo.time = new Date();
+    this.#updateApplicationStateFn(newInfo);
+  }
+  
   // Check current credentials for any transactions on current ledger.
   #isOnLedger = async () => {
     try {
@@ -309,7 +343,6 @@ class PaymentsService {
   // @param {} payerAddress - (out only) payer's public address as set by service
   // @param {} payerPrivateKey - payer's private key (receipt code) iff not using wallet, null if using wallet
   #setCredentials = async (currency, payerAddress, payerPrivateKey) => {
-    console.log('setCreds');
     let newInfo = this.#paymentsInfo;
     newInfo.payerAddress = payerAddress;
     newInfo.payerPrivateKey = payerPrivateKey;
@@ -402,6 +435,11 @@ class PaymentsService {
       if (e.imparterTag === 'ohledger-web3' && !this.#paymentsInfo.wallet['dollars']) return;      
 
       await this.#setCredentials(e.imparterTag === 'eth-web3' ? 'ethers' : 'dollars', e.address, 'secret' in e ? e.secret : null);
+    });
+
+    oh$.addEventListener('onWalletChange', async (e) => {
+      this.#outstandingCache = {};
+      this.#pingApplicationState();
     });
 
     oh$.setNetwork('ohledger', { currency: 'USD', mode: this.#allowNetworkType ? 'test' : 'prod' }); 
