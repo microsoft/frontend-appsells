@@ -2,6 +2,12 @@
 
 # FrontendAppsells
 
+
+
+[Please click here to run the demo as it's hosted on Azure Static Web Apps.](https://thankful-grass-03b28b11e.azurestaticapps.net/)
+
+
+
 This demo presents symbiosis between "[Ledger Based Authorizations](https://overhide.io/)" and [Azure's Static Web Apps](https://azure.microsoft.com/en-us/services/app-service/static/#overview).
 
 The intent is to enable application developers to add free and for-pay authorization aspects to their single page applications--with a minimal backend integration, no concern for payment-gateways, no database work, hence without taking on responsibility of knowing their customers (GDPR compliant).  We want to free app developers to focus on their features, not managing who is who, yet have a simple ability to make a profit from their creations.
@@ -24,9 +30,68 @@ Prerequisites:
 
 It was ammended with demo bits and the [remuneration library](https://github.com/overhide/overhide/blob/master/docs/remuneration-api.md) and [ledgers.js](https://www.npmjs.com/package/ledgers.js) from [overhide](https://overhide.io).
 
-## Significant Code Sections
+## Using This in Your *Azure Static Web Apps* Projects
 
 Sections of code significant to this demo beyond the template boilerplate.
+
+### Azure Functions
+
+The Azure functions to make this solution work are very simple, they live in the `/api` folder.
+
+In `/api/SharedCode/overhide.js` we have three tiny functions that call the two ledger APIs (`is-signature-valid` and `get-transactions`) from the back-end (Azure functions).  This is all that's needed for the back-end to validate authN and authZ.  The APIs are detailed [here](https://test.ohledger.com/swagger.html) for dollars and [here](https://rinkeby.ethereum.overhide.io/swagger.html) for ethers.
+
+See how this `/api/SharedCode/overhide.js` is used in the *RunFeature* Azure function.  This small utility file is all you need for your projects.
+
+Notice that `/api/package.json` includes a dependency on `node-fetch`.  Copy that into your projects.  No need to worry about it past that--*Azure Static Web Apps* takes care of installing this dependency during deployment.
+
+### UI Login Widget
+
+In `/src/ledgers.js-react-widget` lives the React login widget:
+
+​		![image-20200729232739005](C:\jj\src\frontend-appsells\docs\widget)
+
+To use this widget in your UI:
+
+- add `ledgers.js: 2.1.9` to you `/package.json` React app dependencies, `npm install`
+
+- copy the `/src/ledgers.js-react-widget` folder to your project's components (will make it an [npm](https://www.npmjs.com/) component soon)
+
+- notice that the `/src/ledgers.js-react-widget/LedgersWidget.js` depends on a context named `LedgersWidgetPaymentsInfoContext`; setup this context in your `/src/App.js`
+
+- in your `/src/Appjs` wire in the above widget (important callouts below):
+
+```
+...
+import { LedgersWidgetPaymentsInfoContext } from './ledgers.js-react-widget/LedgersWidget';
+...
+class App extends React.Component {
+  ...
+  this.state = {
+    paymentsInfo: {
+      updateApplicationStateFn: this.setPaymentsInfo,
+      setErrorFn: this.setError
+    },
+  ...
+  setPaymentsInfo = (info) => {
+    this.setState({paymentsInfo: {...this.state.paymentsInfo, ...info}});
+  }
+  ...
+  render() {
+    ...
+    <LedgersWidgetPaymentsInfoContext.Provider value={this.state.paymentsInfo}>
+      ...
+    </LedgersWidgetPaymentsInfoContext.Provider>
+    ...
+  }
+}
+```
+
+
+
+- The `LedgersWidgetPaymentsInfoContext` context is React's dependency-injection, it lets the `LedgersWidget.js` provide authN and authZ state/functionality to the feature widgets: `/src/components/FeatureComponent.js`.
+- Study use of `paymentInfo` in `/src/components/FeatureComponent.js`
+- This `/src/components/FeatureComponent.js` provides feedback to the user regarding authN/authZ state with respect to the available features.  It is where we call into the Azure functions back-end once allowed.
+- Notice that the back-end does it's own verification of permissions.  The UI is there to provide payment feedback and allow payments.
 
 ## DevOps Appendix
 
@@ -46,10 +111,32 @@ In your *Static Web App* > *Configuration* create the following key value pairs.
 
 | *Key* | *Value* |
 | --- | --- |
-| FRONTEND_APPSELLS_CONFIG | {"test": "value"} |
-| APPINSIGHTS_INSTRUMENTATIONKEY | see 'Logging in Azure' below |
+| APPINSIGHTS_INSTRUMENTATIONKEY              | see 'Logging in Azure' below               |
+| FREE_FEATURE_EXPIRY_MINUTES | 0 |
+| FREE_FEATURE_DOLLARS_COST | 0 |
+| FREE_FEATURE_DOLLARS_LEDGER_ADDRESS | 0x046c88317b23dc57F6945Bf4140140f73c8FC80F |
+| FREE_FEATURE_ETHERS_COST | 0 |
+| FREE_FEATURE_ETHERS_LEDGER_ADDRESS | 0x046c88317b23dc57F6945Bf4140140f73c8FC80F |
+| PAID_FEATURE_EXPIRY_MINUTES | 0 |
+| PAID_FEATURE_DOLLARS_COST | 2 |
+| PAID_FEATURE_DOLLARS_LEDGER_ADDRESS | 0x046c88317b23dc57F6945Bf4140140f73c8FC80F |
+| PAID_FEATURE_ETHERS_COST | .006 |
+| PAID_FEATURE_ETHERS_LEDGER_ADDRESS | 0x046c88317b23dc57F6945Bf4140140f73c8FC80F |
+| SUBSCRIPTION_FEATURE_EXPIRY_MINUTES | 2 |
+| SUBSCRIPTION_FEATURE_DOLLARS_COST | 3 |
+| SUBSCRIPTION_FEATURE_DOLLARS_LEDGER_ADDRESS | 0x046c88317b23dc57F6945Bf4140140f73c8FC80F |
+| SUBSCRIPTION_FEATURE_ETHERS_COST | .009 |
+| SUBSCRIPTION_FEATURE_ETHERS_LEDGER_ADDRESS | 0x046c88317b23dc57F6945Bf4140140f73c8FC80F |
 
-#### Logging in Azure
+
+
+A screenshot of the configuration when done:
+
+![image-20200729230807451](C:\jj\src\frontend-appsells\docs\functions_config.png)
+
+
+
+#### in Azure
 
 1. create an *Application Insights* resource
 1. take note of the new *Application Insights* *instrumentation key*
@@ -80,10 +167,3 @@ Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
 The page will reload if you make edits.<br />
 You will also see any lint errors in the console.
-
-#### `npm test`
-
-> Note: for tests to run you must have Azure functions running locally with [VSCode Azure Functions Extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions).
-
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
