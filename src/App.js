@@ -19,7 +19,7 @@ class App extends React.Component {
       //
       // Injected into `LedgersWidgetPaymentsInfoContext.Consumer` -- will have the following functions:
       //
-      //   getCurrentCurrency = () => { /* public function: returns 'dollars' or 'ethers' */ }
+      //   getInfo = () => { /* public function: returns an object with currency ('dollars' or 'ethers'), address, message, signature, ledgerUri */ }
       //   isAuthenticated = () => { /* is current crednetial authenticatd against the current currency's ledger? */ }
       //   getOutstanding = (amount, to, since) => { /* does current currency ledger have 'amount' or more paid 
       //                                                'to' recepient 'since' (or all if 'since' null)? 
@@ -88,10 +88,6 @@ class App extends React.Component {
       <ErrorContext.Provider value={this.state.errorInfo}>
         <FeesContext.Provider value={this.state.feesInfo}>
           <LedgersWidgetPaymentsInfoContext.Provider value={this.state.paymentsInfo}>
-            <pre>{JSON.stringify(this.state.paymentsInfo, null, 2)}</pre>
-            <p>{JSON.stringify(this.state.errorInfo)}</p>
-            <p>{JSON.stringify(this.state.feesInfo)}</p>
-            <br/>
             <MainPanel />
           </LedgersWidgetPaymentsInfoContext.Provider>
         </FeesContext.Provider>

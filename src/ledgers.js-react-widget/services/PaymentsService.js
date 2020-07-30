@@ -31,7 +31,7 @@ class PaymentsService {
    *   updateApplicationStateFn: (info) => {},   // function provided by application to update application state with this object
    *   setErrorFn: (text) => {},                 // function provided by application to feed back errors, clears error with null
    * 
-   *   getCurrentCurrency = () => string         // public function: returns 'dollars' or 'ethers'
+   *   getInfo = () => {}                        // public function: returns an object with currency ('dollars' or 'ethers'), address, message, signature, ledgerUri
    *   isAuthenticated = () => {},               // public function: is current crednetial authenticatd against the current currency's ledger? 
    *   getOutstanding = (amount, to, since) => {}// public function: does current currency ledger have 'amount' or more paid 
    *                                             //                  'to' recepient 'since' (or all if 'since' null)?
@@ -70,7 +70,7 @@ class PaymentsService {
     this.#setError = setErrorFn;
 
     this.#paymentsInfo = {
-      getCurrentCurrency: this.#getCurrentCurrency, // public function: returns 'dollars' or 'ethers'
+      getInfo: this.#getInfo,                   // public function: returns an object with currency ('dollars' or 'ethers'), address, message, signature, ledgerUri
       isAuthenticated: this.#isAuthenticated,       // public function: is current crednetial authenticatd against the current currency's ledger? 
       getOutstanding: this.#getOutstanding,         // public function: does current currency ledger have 'amount' or more paid 
                                                     //                  'to' recepient 'since' (or all if 'since' null)?
@@ -135,6 +135,16 @@ class PaymentsService {
     } catch (error) {
       this.#setError(`${error}`);
     }
+  }
+
+  #getInfo = () => {
+    return {
+      currency: this.#getCurrentCurrency(),
+      address: this.#paymentsInfo.payerAddress,
+      message: this.#paymentsInfo.messageToSign,
+      signature: this.#paymentsInfo.payerSignature,
+      ledgerUri: oh$.getOverhideRemunerationAPIUri()
+    };
   }
 
   // @returns {string} 'dollars' or 'ethers'.
