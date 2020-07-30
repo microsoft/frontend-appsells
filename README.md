@@ -48,7 +48,7 @@ Notice that `/api/package.json` includes a dependency on `node-fetch`.  Copy tha
 
 In `/src/ledgers.js-react-widget` lives the React login widget:
 
-​		![image-20200729232739005](docs\widget.png)
+​		![widget](https://github.com/microsoft/frontend-appsells/blob/main/docs/widget.png?raw=true)
 
 To use this widget in your UI:
 
@@ -132,7 +132,7 @@ In your *Static Web App* > *Configuration* create the following key value pairs.
 
 A screenshot of the configuration when done:
 
-![image-20200729230807451](docs\functions_config.png)
+![config](https://github.com/microsoft/frontend-appsells/blob/main/docs/functions_config.png?raw=true)
 
 
 
