@@ -48,7 +48,7 @@ Notice that `/api/package.json` includes a dependency on `node-fetch`.  Copy tha
 
 In `/src/ledgers.js-react-widget` lives the React login widget:
 
-​		![image-20200729232739005](C:\jj\src\frontend-appsells\docs\widget)
+​		![image-20200729232739005](C:\jj\src\frontend-appsells\docs\widget.png)
 
 To use this widget in your UI:
 
