@@ -65,7 +65,7 @@ As these (*FeatureComponent*) features are used they call into our Azure functio
 
 The basic steps to use what you see here in your projects:
 
-- read through and follow the [Azure Static Web Apps getting-started guide]([GitHub](https://github.com/) account[Azure](https://portal.azure.com/) account); after you should have:
+- read through and follow the [Azure Static Web Apps getting-started guide](https://docs.microsoft.com/en-ca/azure/static-web-apps/getting-started?tabs=react); after you should have:
   - Web application scaffolded from a template
   - [GitHub](https://github.com/) account
   - [Azure](https://portal.azure.com/) account
