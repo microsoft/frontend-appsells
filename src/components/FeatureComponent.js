@@ -51,7 +51,7 @@ class FeatureComponent extends React.Component {
       // show Stripe VISA hint
       const visaHintOpacity = !!paymentInfo.pendingTransaction[currency] && currency === 'dollars' ? "1" : "0";
       var visaHint = (
-        <img src={visa} style={{ position: "fixed", top: "10px", right: "0px", zIndex: "200", opacity: visaHintOpacity, transition: "opacity 1s ease-in 1s", pointerEvents: "none"}}></img>
+        <img src={visa} alt="help" style={{ position: "fixed", top: "10px", right: "0px", zIndex: "200", opacity: visaHintOpacity, transition: "opacity 1s ease-in 1s", pointerEvents: "none"}}></img>
       );  
   
       return (
