@@ -21,7 +21,7 @@ class NoEthereumWalletComponent extends React.Component {
           <div style={{maxWidth: "1000px", width: "80%"}}>
             <div className="ui info message">
               <i className="close icon" onClick={() => this.setState({dismissed: true})}></i>
-              <p>The 'ethers' currency no available as now Ethereum <em>web3.js</em> wallet detected.</p>
+              <p>The 'ethers' currency is not available as no Ethereum <em>web3.js</em> wallet detected.</p>
             </div>
           </div>                      
         );
