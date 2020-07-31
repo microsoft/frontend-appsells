@@ -8,6 +8,8 @@
 
 
 
+![comic](https://github.com/microsoft/frontend-appsells/blob/main/docs/comic.png?raw=true)
+
 ## Introduction
 
 This demo presents symbiosis between "[Ledger Based Authorizations](https://overhide.io/)" and [Azure's Static Web Apps](https://azure.microsoft.com/en-us/services/app-service/static/#overview).
