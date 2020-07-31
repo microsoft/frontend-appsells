@@ -22,7 +22,7 @@ This is an open-sourced demo of this "[Ledger Based Authorizations](https://over
 
 This project was created following below instructions to quickly create an Azure Static Web App for react:
 
-- https://docs.microsoft.com/en-ca/azure/static-web-apps/getting-started?tabs=react
+- [Azure Static Web Apps getting-started guide](https://docs.microsoft.com/en-ca/azure/static-web-apps/getting-started?tabs=react)
 
 Prerequisites:
 
@@ -30,7 +30,7 @@ Prerequisites:
 - [Azure](https://portal.azure.com/) account
 - [VSCode](https://code.visualstudio.com/) with [Azure Functions Extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions) installed.
 
-It was ammended with demo bits and the [remuneration library](https://github.com/overhide/overhide/blob/master/docs/remuneration-api.md) and [ledgers.js](https://www.npmjs.com/package/ledgers.js) from [overhide](https://overhide.io).
+It was amended with demo bits and the [remuneration library](https://github.com/overhide/overhide/blob/master/docs/remuneration-api.md) and [ledgers.js](https://www.npmjs.com/package/ledgers.js) from [overhide](https://overhide.io).
 
 ## Overview
 
@@ -40,11 +40,13 @@ In this demo we have a React frontend and two Azure functions for the backend.  
 
 See next section for more code details.
 
-The *ledgers.js-react-widget* React widget provides login visuals to our users (in the browser) and updates the rest of our application as to whether the user authenticated and paid up for feature access.
+The *ledgers.js-react-widget* (React widget) provides login visuals to our users (in the browser) and updates the rest of our application as to whether the user authenticated and paid up for feature access.
 
-The widget interacts with other visual components representing features in our app via *LedgersWidgetPaymentsInfoContext*.  This context provides payment information.  These other components, represented by *FeatureComponent* in our demo, are various paid add-ons and subscriptions.  Since these are features that require authentication and payment, they interact with *ledgers.js-react-widget* (via this injected context) for additional payments.  
+The widget interacts with other visual components representing features in our app via a React context (*LedgersWidgetPaymentsInfoContext*, not shown).  This context provides payment information.  These other components, represented by *FeatureComponent* in our demo, are various paid add-ons and subscriptions.  Since these are features that require authentication and payment, they interact with the *ledgers.js-react-widget* (via this injected context) for additional payments.  
 
-When these features are used, they call into our Azure functions backend.  The frontend provides necessary information proving the user is authenticated (signature) and which ledger they authorized against (paid up).  The Azure functions backend validates their signature (authentication, they are who they say) and validates authorizations.  The back-end does this with two simple REST APIs.  This demo is rudimentary, but the back-end should really be extended to return a token for subsequent calls.
+As these (*FeatureComponent*) features are used they call into our Azure functions backend to do feature specific business work.  In addition to feature related parameters,  the frontend provides the backend with information proving the user is authenticated (signature) and which ledger they authorized against (paid up).  The Azure functions backend validates the provided signature and validates authorizations before performing feature work.  The backend does the validations with [two simple REST APIs](https://github.com/overhide/overhide/blob/master/docs/remuneration-api.md).  
+
+> This demo is rudimentary; the backend should really be extended to return a token for reuse on subsequent calls.
 
 ### What We Accomplished as Application Developers
 
@@ -61,7 +63,28 @@ When these features are used, they call into our Azure functions backend.  The f
 
 ## Using This in Your *Azure Static Web Apps* Projects
 
-Sections of code significant to this demo beyond the template boilerplate.
+The basic steps to use what you see here in your projects:
+
+- read through and follow the [Azure Static Web Apps getting-started guide]([GitHub](https://github.com/) account[Azure](https://portal.azure.com/) account); after you should have:
+  - Web application scaffolded from a template
+  - [GitHub](https://github.com/) account
+  - [Azure](https://portal.azure.com/) account
+- if you followed the above, you have your React (or other) app in [GitHub](https://github.com/) and you're ready to instrument for payments
+- if you want to get paid in Ethers, ensure to onboard onto Ethereum
+  - onboarding just means getting an Ethereum public/private key pair
+- if you want to get paid in US dollars, ensure to onboard on [overhide-ledger](https://overhide.io/):
+  - [test ledger onboarding](https://test.ohledger.com/onboard)
+  - [production ledger onboarding](https://ohledger.com/onboard)
+- configure your new application with your onboarded public addresses (both Ethereum and overhide)
+  - see all the `*_FEATURE_*_LEDGER_ADDRESS` Azure function configuration points in the [Configuration](#configuration) section below
+  - see the `/api/local.settings.json` file for local (F5 run) settings of same
+- use the `/api/SharedCode/overhide.js` backend library in your Azure functions, see the [Azure Functions](#azure-functions) section below
+- use the `/src/ledgers.js-react-widget` widget in your frontend, see the [UI Login Widget](#ui-login-widget) section below
+- ask for help on [r/overhide](https://www.reddit.com/r/overhide/)
+
+
+
+Next we dive a bit deeper into sections of code significant to this demo from a payments perspective.
 
 ### Azure Functions
 
@@ -157,7 +180,7 @@ In your *Static Web App* > *Configuration* create the following key value pairs.
 | SUBSCRIPTION_FEATURE_ETHERS_COST | .009 |
 | SUBSCRIPTION_FEATURE_ETHERS_LEDGER_ADDRESS | 0x046c88317b23dc57F6945Bf4140140f73c8FC80F |
 
-
+Most of the configuration is a fees schedule including ledger addresses of the recipient (developer of the app).
 
 A screenshot of the configuration when done:
 
@@ -165,7 +188,7 @@ A screenshot of the configuration when done:
 
 
 
-#### in Azure
+#### Logging in Azure
 
 1. create an *Application Insights* resource
 1. take note of the new *Application Insights* *instrumentation key*
