@@ -34,7 +34,7 @@ It was amended with demo bits and the [remuneration library](https://github.com/
 
 ## Overview
 
-In this demo we have a React frontend and two Azure functions for the backend.  The code we wrote in our app is under the "our code" label below:
+In this demo we have a React frontend and two Azure functions for the backend.  The code we wrote in our app is under the "our demo code" label below:
 
 ![diagram](https://github.com/microsoft/frontend-appsells/blob/main/docs/diagram.png?raw=true)
 
