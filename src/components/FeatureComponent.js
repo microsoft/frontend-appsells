@@ -3,6 +3,7 @@ import { FeesContext } from '../services/FeesScheduleService';
 import { LedgersWidgetPaymentsInfoContext } from '../ledgers.js-react-widget/LedgersWidget';
 import { ErrorContext } from '../services/ErrorService';
 import FeatureService from '../services/FeatureService'
+import visa from '../assets/visa.png'
 class FeatureComponent extends React.Component {
 
   constructor(props) {
@@ -29,7 +30,7 @@ class FeatureComponent extends React.Component {
       const to = feesInfo[this.props.which][currency].address;
       const sinceMinutes = +feesInfo[this.props.which].expiryMinutes || null;
       let outstanding = cost === 0 ? 0 : paymentInfo.getOutstanding(cost, to, sinceMinutes);
-      const loading = outstanding === null ? 'loading' : '';
+      const loading = paymentInfo.pendingTransaction[currency] || outstanding === null ? 'loading' : '';
       outstanding = +outstanding;
       const open = cost === 0 ? paymentInfo.isAuthenticated() : !loading && paymentInfo.isAuthenticated() && outstanding  === 0;
       const icon = open ? this.state.featureRan ? 'flag checkered' : 'unlock' : 'lock';
@@ -47,10 +48,19 @@ class FeatureComponent extends React.Component {
             info.signature);}
         : async (e) => {e.preventDefault(); await paymentInfo.topUp(outstanding, to)};
 
+      // show Stripe VISA hint
+      const visaHintOpacity = !!paymentInfo.pendingTransaction[currency] && currency === 'dollars' ? "1" : "0";
+      var visaHint = (
+        <img src={visa} style={{ position: "fixed", top: "10px", right: "0px", zIndex: "200", opacity: visaHintOpacity, transition: "opacity 1s ease-in 1s", pointerEvents: "none"}}></img>
+      );  
+  
       return (
         <div>
+          {visaHint}
           <i className={`${icon} icon massive circular`}></i>        
           <h3>{this.props.which}</h3>
+          <p style={{opacity: "0.6", fontSize: "small"}}>{this.props.subLabel}</p>
+          <br/>
           <button className={`ui primary button ${loading} ${disabled}`} onClick={(e) => action(e)}>
             {label}
             {showCost ? costTag : ''}

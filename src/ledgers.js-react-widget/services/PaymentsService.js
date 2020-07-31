@@ -42,6 +42,7 @@ class PaymentsService {
    *   enabled: {},                              // keyed by (currentCurrency || defaultCurrency); informs if currency available, e.g. wallet availble
    *   wallet: {},                               // keyed by (currentCurrency || defaultCurrency); informs of currently used wallet, or null
    *   isOnLedger: {},                           // keyed by (currentCurrency || defaultCurrency); informs if currently used credentials are on ledger
+   *   pendingTransaction: {},                   // keyed by (currentCurrency || defaultCurrency); informs amount of currently pending transaction or null
    *   defaultCurrency: `dollars`,               // default payment currency, either 'dollars' or 'ethers'
    *   currentCurrency: null,                    // chosen payment currency, either 'dollars', 'ethers', or null
    *   payerAddress: null,                       // (out only) payer's public address as set by service
@@ -81,6 +82,7 @@ class PaymentsService {
       enabled: {},                              // keyed by (currentCurrency || defaultCurrency); informs if currency available, e.g. wallet availble
       wallet: {},                               // keyed by (currentCurrency || defaultCurrency); informs of currently used wallet, or null
       isOnLedger: {},                           // keyed by (currentCurrency || defaultCurrency); informs if currently used credentials are on ledger
+      pendingTransaction: {},                   // keyed by (currentCurrency || defaultCurrency); informs amount of currently pending transaction or null
       defaultCurrency: defaultCurrency,         // default payment currency, either 'dollars' or 'ethers'
       currentCurrency: null,                    // chosen payment currency, either 'dollars', 'ethers', or null
       payerAddress: null,                       // (out only) payer's public address as set by service
@@ -133,7 +135,7 @@ class PaymentsService {
         await oh$.generateCredentials(imparter,null);
       }
     } catch (error) {
-      this.#setError(`${error}`);
+      this.#setError(`${typeof error === 'object' && 'message' in error ? error.message : error}`);
     }
   }
 
@@ -225,7 +227,7 @@ class PaymentsService {
           default:
         }      
       } catch (error) {
-        this.#setError(`${'message' in error ? error.message : error}`);
+        this.#setError(`${typeof error === 'object' && 'message' in error ? error.message : error}`);
       }  
     })();
     return null;
@@ -251,6 +253,7 @@ class PaymentsService {
       default:
     }
     try {
+      this.#paymentsInfo.pendingTransaction[currency] = amount;
       let aDayAgo = new Date((new Date()).getTime() - 24*60*60*1000);     // we compare tallies...
       let before = await oh$.getTally(imparter, {address: toAddress}, aDayAgo);  // ... by taking a sample before
       let options = this.#paymentsInfo.payerSignature && this.#paymentsInfo.messageToSign && {
@@ -258,18 +261,22 @@ class PaymentsService {
           signature: this.#paymentsInfo.payerSignature
         };
       await oh$.createTransaction(imparter, amount, toAddress, options);
-      for (var i = 0; i < 12; i++) {
-        let now = await oh$.getTally(imparter, { address: toAddress }, aDayAgo); // ... we take a sample now
-        if (now > before) break;                                          // ... and exit out as soon as decentralized
-                                                                          //     ledger is consistent between the wallet's
-                                                                          //     node and ledgers.js node
-        await delay(5000);                                                // ... else wait 5 seconds
+      if (amount > 0) {
+        for (var i = 0; i < 12; i++) {
+          let now = await oh$.getTally(imparter, { address: toAddress }, aDayAgo); // ... we take a sample now
+          if (now > before) break;                                          // ... and exit out as soon as decentralized
+                                                                            //     ledger is consistent between the wallet's
+                                                                            //     node and ledgers.js node
+          await delay(5000);                                                // ... else wait 5 seconds
+        }  
       }
+      this.#paymentsInfo.pendingTransaction[currency] = null;
       this.#paymentsInfo.isOnLedger[currency] = true;      
       this.#outstandingCache = {}; // reset outstanding cache
       this.#pingApplicationState();
     } catch (error) {
-      this.#setError(`${'message' in error ? error.message : error}`);
+      this.#paymentsInfo.pendingTransaction[currency] = null;
+      this.#setError(`${typeof error === 'object' && 'message' in error ? error.message : error}`);
     }
   }
 
@@ -290,7 +297,7 @@ class PaymentsService {
         this.#paymentsInfo.isOnLedger[currency] = true;
       }
     } catch (error) {
-      this.#setError(`${'message' in error ? error.message : error}`);
+      this.#setError(`${typeof error === 'object' && 'message' in error ? error.message : error}`);
     }
   }
 
@@ -303,7 +310,7 @@ class PaymentsService {
       this.#setSignature(challenge, signature);
     } catch (error) {
       this.#setSignature(null, null);
-      this.#setError(`${'message' in error ? error.message : error}`);
+      this.#setError(`${typeof error === 'object' && 'message' in error ? error.message : error}`);
     }
   }
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import LedgersWidget from '../ledgers.js-react-widget/LedgersWidget';
+import NoEthereumWalletComponent from './NoEthereumWalletComponent';
 import ErrorComponent from './ErrorComponent';
 import FeatureComponent from './FeatureComponent';
 
@@ -17,6 +18,10 @@ class MainPanel extends React.Component {
       <div className="ui grid">
 
         <div className="row centered">
+          <NoEthereumWalletComponent />
+        </div>
+
+        <div className="row centered">
           <ErrorComponent />
         </div>
 
@@ -31,6 +36,7 @@ class MainPanel extends React.Component {
                                 authLabel="Login to Use"
                                 payLayble=""
                                 useLabel="Use Feature"
+                                subLabel="(access forever)"
                                 showCost={false} />
             </div>
           </div>
@@ -40,6 +46,7 @@ class MainPanel extends React.Component {
                                 authLabel="Login to Use"
                                 payLabel="Add Feature"
                                 useLabel="Use Feature"
+                                subLabel="(access forever)"
                                 showCost={true} />
             </div>
           </div>
@@ -49,6 +56,7 @@ class MainPanel extends React.Component {
                                 authLabel="Login to Use"
                                 payLabel="Subscribe Feature"
                                 useLabel="Use Feature"
+                                subLabel="(2 minute access)"
                                 showCost={true} />
             </div>
           </div>
