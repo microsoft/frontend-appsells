@@ -186,6 +186,8 @@ In your *Static Web App* > *Configuration* create the following key value pairs.
 
 Most of the configuration is a fees schedule including ledger addresses of the recipient (developer of the app).
 
+Note, `0x046c88317b23dc57F6945Bf4140140f73c8FC80F` is my public address on both Ethereum and in the overhide-ledger:  I'm the make-pretend app developer in these samples.
+
 A screenshot of the configuration when done:
 
 ![config](https://github.com/microsoft/frontend-appsells/blob/main/docs/functions_config.png?raw=true)
@@ -205,11 +207,11 @@ A screenshot of the configuration when done:
 
 To run this solution in your local environment:
 
-1. install VSCode and Azure Functions Extention for VSCode
+1. install [VSCode](https://code.visualstudio.com/) and [Azure Functions Extention for VSCode](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions)
 1. in VSCode create a workspace with this repo
-1. in a console `npm install` dependencies
-1. in VSCode, start the local Azure Functions server by pressing F5
-1. in a console start the react server with `npm start`
+1. in a separate console `npm install` dependencies
+1. back in VSCode, start the local Azure Functions server by pressing F5
+1. in the separate console start the react server with `npm start`
 1. navigate browser to http://localhost:3000
 
 #### Configuration
