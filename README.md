@@ -18,6 +18,10 @@ The gist is to take public ledger authorization aspects from blockchains such as
 
 This is an open-sourced demo of this "[Ledger Based Authorizations](https://overhide.io/)" concept, leveraging the open-source "[ledgers.js](https://www.npmjs.com/package/ledgers.js)" library, to inspire that solutions with [Azure Static Web Apps](https://azure.microsoft.com/en-us/services/app-service/static/#overview) need not be made available freely without authorizations, or require AAD onboarding and overhead of payment-gateways. They can be simple public for-profit offerings. The intent is to give developers a path-forward on how they can make a profit from their creations.
 
+If you consider [a standard scalable e-commerce setup](https://docs.microsoft.com/en-us/azure/architecture/solution-ideas/articles/scalable-ecommerce-web-app), it mandates that Web app developers integrate with third-party payment-gateways themselves.  Here, we're offering a simple path forward without that burden.  Consider the green annotations below, applied on top of the standard model:
+
+![diagram](https://github.com/microsoft/frontend-appsells/blob/main/docs/arch.png?raw=true)
+
 ## This Repo
 
 This project was created following below instructions to quickly create an Azure Static Web App for react:
@@ -90,7 +94,7 @@ Next we dive a bit deeper into sections of code significant to this demo from a 
 
 The Azure functions to make this solution work are very simple, they live in the `/api` folder.
 
-In `/api/SharedCode/overhide.js` we have three tiny functions that call the two ledger APIs (`is-signature-valid` and `get-transactions`) from the back-end (Azure functions).  This is all that's needed for the back-end to validate authN and authZ.  The APIs are detailed [here](https://test.ohledger.com/swagger.html) for dollars and [here](https://rinkeby.ethereum.overhide.io/swagger.html) for ethers.
+In `/api/SharedCode/overhide.js` we have three tiny functions that call the [two ledger APIs](https://github.com/overhide/overhide/blob/master/docs/remuneration-api.md) (`is-signature-valid` and `get-transactions`) from the back-end (Azure functions).  This is all that's needed for the back-end to validate authN and authZ.  The APIs are detailed [here](https://test.ohledger.com/swagger.html) for dollars and [here](https://rinkeby.ethereum.overhide.io/swagger.html) for ethers.
 
 See how this `/api/SharedCode/overhide.js` is used in the *RunFeature* Azure function.  This small utility file is all you need for your projects.
 
