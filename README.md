@@ -18,9 +18,16 @@ The gist is to take public ledger authorization aspects from blockchains such as
 
 This is an open-sourced demo of this "[Ledger Based Authorizations](https://overhide.io/)" concept, leveraging the open-source "[ledgers.js](https://www.npmjs.com/package/ledgers.js)" library, to inspire that solutions with [Azure Static Web Apps](https://azure.microsoft.com/en-us/services/app-service/static/#overview) need not be made available freely without authorizations, or require AAD onboarding and overhead of payment-gateways. They can be simple public for-profit offerings. The intent is to give developers a path-forward on how they can make a profit from their creations.
 
-If you consider [a standard scalable e-commerce setup](https://docs.microsoft.com/en-us/azure/architecture/solution-ideas/articles/scalable-ecommerce-web-app), it mandates that Web app developers integrate with third-party payment-gateways themselves.  Here, we're offering a simple path forward without that burden.  Consider the green annotations below, applied on top of the standard model:
+If you consider [a standard scalable e-commerce setup](https://docs.microsoft.com/en-us/azure/architecture/solution-ideas/articles/scalable-ecommerce-web-app), it suggests that Web app developers integrate with third-party payment-gateways themselves.  Here, we're offering a simple path forward without that burden.  Not requisite--but a nice side benefit--it's a path forward that future proofs for payments with cryptos.  Consider the green annotations below, applied on top of the standard model:
 
 ![diagram](https://github.com/microsoft/frontend-appsells/blob/main/docs/arch.png?raw=true)
+
+Some terms:
+
+- ledger -- public table of payments between anonymized entities
+- authN -- authentication (I am who I say I am)
+- authZ -- authorization (I am allowed to do as much as I can prove I paid for)
+- SPA -- Single Page Application; thick client Web application in the browser
 
 ## This Repo
 
