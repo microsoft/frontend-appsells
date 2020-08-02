@@ -193,7 +193,7 @@ In your *Static Web App* > *Configuration* create the following key value pairs.
 
 Most of the configuration is a fees schedule including ledger addresses of the recipient (developer of the app).
 
-Note, `0x046c88317b23dc57F6945Bf4140140f73c8FC80F` is my public address on both Ethereum and in the overhide-ledger:  I'm the make-pretend app developer in these samples.
+Note, `0x046c88317b23dc57F6945Bf4140140f73c8FC80F` is one of my public addresses on both the Ethereum blockchain and in the overhide-ledger:  here I configured the same address for all features.  I could have used multiple addresses, perhaps one per feature, and check authorization per address.  Each address would be a feature SKU in that case.
 
 A screenshot of the configuration when done:
 
