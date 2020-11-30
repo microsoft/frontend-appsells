@@ -41,7 +41,7 @@ Prerequisites:
 - [Azure](https://portal.azure.com/) account
 - [VSCode](https://code.visualstudio.com/) with [Azure Functions Extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions) installed.
 
-It was amended with demo bits and the [remuneration library](https://github.com/overhide/overhide/blob/master/docs/remuneration-api.md) and [ledgers.js](https://www.npmjs.com/package/ledgers.js) from [overhide](https://overhide.io).
+It was amended with demo bits and the [remuneration library](https://overhide.io/2020/09/06/remuneration-api.html) and [ledgers.js](https://www.npmjs.com/package/ledgers.js) from [overhide](https://overhide.io).
 
 ## Overview
 
@@ -55,7 +55,7 @@ The *ledgers.js-react-widget* (React widget) provides login visuals to our users
 
 The widget interacts with other visual components representing features in our app via a React context (*LedgersWidgetPaymentsInfoContext*, not shown).  This context provides payment information.  These other components, represented by *FeatureComponent* in our demo, are various paid add-ons and subscriptions.  Since these are features that require authentication and payment, they interact with the *ledgers.js-react-widget* (via this injected context) for additional payments.  
 
-As these (*FeatureComponent*) features are used they call into our Azure functions backend to do feature specific business work.  In addition to feature related parameters,  the frontend provides the backend with information proving the user is authenticated (signature) and which ledger they authorized against (paid up).  The Azure functions backend validates the provided signature and validates authorizations before performing feature work.  The backend does the validations with [two simple REST APIs](https://github.com/overhide/overhide/blob/master/docs/remuneration-api.md).  
+As these (*FeatureComponent*) features are used they call into our Azure functions backend to do feature specific business work.  In addition to feature related parameters,  the frontend provides the backend with information proving the user is authenticated (signature) and which ledger they authorized against (paid up).  The Azure functions backend validates the provided signature and validates authorizations before performing feature work.  The backend does the validations with [two simple REST APIs](https://overhide.io/2020/09/06/remuneration-api.html).  
 
 > This demo is rudimentary; the backend should really be extended to return a token for reuse on subsequent calls.
 
@@ -101,7 +101,7 @@ Next we dive a bit deeper into sections of code significant to this demo from a 
 
 The Azure functions to make this solution work are very simple, they live in the `/api` folder.
 
-In `/api/SharedCode/overhide.js` we have three tiny functions that call the [two ledger APIs](https://github.com/overhide/overhide/blob/master/docs/remuneration-api.md) (`is-signature-valid` and `get-transactions`) from the back-end (Azure functions).  This is all that's needed for the back-end to validate authN and authZ.  The APIs are detailed [here](https://test.ohledger.com/swagger.html) for dollars and [here](https://rinkeby.ethereum.overhide.io/swagger.html) for ethers.
+In `/api/SharedCode/overhide.js` we have three tiny functions that call the [two ledger APIs](https://overhide.io/2020/09/06/remuneration-api.html) (`is-signature-valid` and `get-transactions`) from the back-end (Azure functions).  This is all that's needed for the back-end to validate authN and authZ.  The APIs are detailed [here](https://test.ohledger.com/swagger.html) for dollars and [here](https://rinkeby.ethereum.overhide.io/swagger.html) for ethers.
 
 See how this `/api/SharedCode/overhide.js` is used in the *RunFeature* Azure function.  This small utility file is all you need for your projects.
 
