@@ -2,8 +2,6 @@
 
 # FrontendAppsells
 
-![comic](https://github.com/microsoft/frontend-appsells/blob/main/docs/comic.png?raw=true)
-
 ## Demo
 
 [Please click here to run the demo as it's hosted on Azure Static Web Apps.](https://thankful-grass-03b28b11e.azurestaticapps.net/)
