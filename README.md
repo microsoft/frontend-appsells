@@ -173,7 +173,7 @@ To deploy:
 1. follow https://docs.microsoft.com/en-ca/azure/static-web-apps/getting-started?tabs=react to connect your clone of this GitHub repo to your *Azure Static Web Apps* resource for this application
     - this will update the `./.github/workflows` configuration with your connection's *GitHub CI/CD Actions*
 1. ensure all changes in this repo are pushed to GitHub
-1. ensure *GitHub CI/CD Actions* complete:  (e.g. https://github.com/overhide/FrontendAppsells/actions)
+1. ensure *GitHub CI/CD Actions* complete:  (e.g. https://github.com/microsoft/FrontendAppsells/actions)
     - once *GitHub CI/CD Actions* complete, your build is automagically deployed
 
 #### Configuration
