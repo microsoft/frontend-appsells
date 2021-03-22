@@ -19,7 +19,7 @@ module.exports = async function (context, req) {
   const cost = +feesSchedule[featureName][currency].cost * MULTIPLIER[currency];
   const expiryMinutes = +feesSchedule[featureName].expiryMinutes || null;
 
-  const uri = currency === 'ethers' ? 'https://rinkeby.ethereum.overhide.io' : 'https://test.ohledger.com/v1'
+  const uri = currency === 'ethers' ? 'https://rinkeby.ethereum.overhide.io' : 'https://test.ledger.overhide.io/v1'
 
   try {
     if (await overhide.isValidOnLedger(uri, address, message, signature)

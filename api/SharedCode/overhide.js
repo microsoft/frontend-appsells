@@ -1,6 +1,33 @@
 const fetch = require('node-fetch');
 
 /**
+ * Retrieve API access token
+ * 
+ * @returns {string} the token.
+ */
+async function getToken() {
+  const tokenUrl = `https://token.overhide.io/token`;
+  const apiKey = '0x___API_KEY_ONLY_FOR_DEMOS_AND_TESTS___';
+  const url = `${tokenUrl}?apikey=${apiKey}`;
+
+  console.log('retrieving token for APIs');
+  return fetch(url, {
+    method: 'GET'
+  }).then(result => {
+    if (result.status == 200) {
+      return result.text();
+    } else {
+      throw(JSON.stringify({url: url, status: result.status, error: result.message}));
+    }
+  }).then(token => {
+    console.log('successfuly retrieved token for APIs');
+    return token;
+  }).catch(e => {
+    console.log('failed to get token for APIs: ' + e);
+  });
+}
+
+/**
  * Call overhide remuneration API to get transaction tally for determining authority tiers
  * 
  * @param {string} uri - of overhide remuneration provider API
@@ -18,7 +45,7 @@ async function getTally(uri, from, to, date) {
   uri = `${uri}/get-transactions/${from}/${to}?tally-only=true${since}`;
   console.log(`remunaration API >> getTally call (${uri})`);
 
-  return await fetch(uri)
+  return await fetch(uri, {headers: { "Authorization": `Bearer ${await getToken()}` }})
     .then(res => res.json())
     .then(res => {
       console.log('remunaration API >> getTally call OK');
@@ -74,7 +101,10 @@ module.exports = {
 
     return await fetch(uri, {
       method: "POST",
-      headers: { "Content-Type": "application/json; charset=utf-8" },
+      headers: { 
+        "Content-Type": "application/json; charset=utf-8",
+        "Authorization": `Bearer ${await getToken()}`
+      },
       body: body
     })
     .then((result) => {

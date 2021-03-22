@@ -381,8 +381,37 @@ class PaymentsService {
     this.#updateApplicationStateFn(newInfo);
   }
 
+  /**
+   * Retrieve API access token
+   * 
+   * @returns {string} the token.
+   */
+  #getToken = async () => {
+    const tokenUrl = `https://token.overhide.io/token`;
+    const apiKey = '0x___API_KEY_ONLY_FOR_DEMOS_AND_TESTS___';
+    const url = `${tokenUrl}?apikey=${apiKey}`;
+
+    return fetch(url, {
+      method: 'GET'
+    }).then(result => {
+      if (result.status == 200) {
+        return result.text();
+      } else {
+        throw(JSON.stringify({url: url, status: result.status, error: result.message}));
+      }
+    }).then(token => {
+      return token;
+    }).catch(e => {
+    });
+  }
+
   // Initialize oh$ listeners.
   #init = () => {
+
+    // Ensure oh$ has a token.
+    (async () => {
+      oh$.enable(await this.#getToken());
+    })();
 
     // Determine if ethers should be enabled based on uri from wallet (versus admin)
     // Ethers only enabled if wallet, so do everything in 'onWalletChange'

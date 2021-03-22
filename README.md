@@ -6,6 +6,16 @@
 
 [Please click here to run the demo as it's hosted on Azure Static Web Apps.](https://thankful-grass-03b28b11e.azurestaticapps.net/)
 
+
+
+------
+
+**This hack serves as a demo of the [ledgers.js library](https://www.npmjs.com/package/ledgers.js).  Please see use of `oh$` in [./src/ledgers.js-react-widget/services/PaymentsService.js](./src/ledgers.js-react-widget/services/PaymentsService.js) (UX widget) and [./api/SharedCode/overhide.js](./api/SharedCode/overhide.js) (back-end).**
+
+------
+
+
+
 ## Introduction
 
 This demo presents symbiosis between "[Ledger Based Authorizations](https://overhide.io/)" and [Azure's Static Web Apps](https://azure.microsoft.com/en-us/services/app-service/static/#overview).
@@ -82,8 +92,8 @@ The basic steps to use what you see here in your projects:
 - if you want to get paid in Ethers, ensure to onboard onto Ethereum
   - onboarding just means getting an Ethereum public/private key pair
 - if you want to get paid in US dollars, ensure to onboard on [overhide-ledger](https://overhide.io/):
-  - [test ledger onboarding](https://test.ohledger.com/onboard)
-  - [production ledger onboarding](https://ohledger.com/onboard)
+  - [test ledger onboarding](https://test.ledger.overhide.io/onboard)
+  - [production ledger onboarding](https://ledger.overhide.io/onboard)
 - configure your new application with your onboarded public addresses (both Ethereum and overhide)
   - see all the `*_FEATURE_*_LEDGER_ADDRESS` Azure function configuration points in the [Configuration](#configuration) section below
   - see the `/api/local.settings.json` file for local (F5 run) settings of same
@@ -99,7 +109,7 @@ Next we dive a bit deeper into sections of code significant to this demo from a 
 
 The Azure functions to make this solution work are very simple, they live in the `/api` folder.
 
-In `/api/SharedCode/overhide.js` we have three tiny functions that call the [two ledger APIs](https://overhide.io/2020/09/06/remuneration-api.html) (`is-signature-valid` and `get-transactions`) from the back-end (Azure functions).  This is all that's needed for the back-end to validate authN and authZ.  The APIs are detailed [here](https://test.ohledger.com/swagger.html) for dollars and [here](https://rinkeby.ethereum.overhide.io/swagger.html) for ethers.
+In `/api/SharedCode/overhide.js` we have four tiny functions that call the [two ledger APIs](https://overhide.io/2020/09/06/remuneration-api.html) (`is-signature-valid` and `get-transactions`) from the back-end (Azure functions).  The API calls use a bearer-token `Authorization` header with [a retrieved token](https://token.overhide.io/swagger.html).  This is all that's needed for the back-end to validate authN and authZ.  The APIs are detailed [here](https://test.ledger.overhide.io/swagger.html) for dollars and [here](https://rinkeby.ethereum.overhide.io/swagger.html) for ethers.
 
 See how this `/api/SharedCode/overhide.js` is used in the *RunFeature* Azure function.  This small utility file is all you need for your projects.
 
@@ -113,7 +123,7 @@ In `/src/ledgers.js-react-widget` lives the React login widget:
 
 To use this widget in your UI:
 
-- add `ledgers.js: 2.1.9` to you `/package.json` React app dependencies, `npm install`
+- add `ledgers.js: 4.0.3` to you `/package.json` React app dependencies, `npm install`
 
 - copy the `/src/ledgers.js-react-widget` folder to your project's components (will make it an [npm](https://www.npmjs.com/) component soon)
 
