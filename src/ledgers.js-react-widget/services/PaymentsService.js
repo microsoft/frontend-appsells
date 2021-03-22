@@ -394,7 +394,7 @@ class PaymentsService {
     return fetch(url, {
       method: 'GET'
     }).then(result => {
-      if (result.status == 200) {
+      if (result.status === 200) {
         return result.text();
       } else {
         throw(JSON.stringify({url: url, status: result.status, error: result.message}));
